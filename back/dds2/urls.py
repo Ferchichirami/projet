@@ -18,12 +18,18 @@ from django.contrib import admin
 from django.urls import path,include
 from django.conf import settings
 from django.conf.urls.static import static
+import palteforme.urls
+import user.urls
+
+from palteforme import views
+
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('palteforme/',include('palteforme.urls')),
+    path('palteforme/',include(palteforme.urls)),
+    path('gradeapi/',views.gradeapi),
 
     path('api/auth/', include('rest_framework.urls')),
-    path('accounts/',include ('user.urls')),
+    path('accounts/',include (user.urls)),
 
 
 ]

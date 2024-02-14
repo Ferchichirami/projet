@@ -1,5 +1,9 @@
 
 
+import base64
+import io
+import tempfile
+import time
 from rest_framework.authentication import SessionAuthentication, BasicAuthentication
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -13,13 +17,14 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .models import User
 from django.contrib.auth.hashers import make_password
-from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
+import json
+from datetime import datetime
 
 from .serializers import UserSerializer
 
-
+import os
 
 class ProfileView(APIView):
     authentication_classes = [SessionAuthentication, BasicAuthentication,TokenAuthentication]
@@ -33,7 +38,28 @@ class ProfileView(APIView):
         return Response(content)
 
 
+@api_view(['GET'])
+def user_profile(request, pk):
+    try:
+        user = User.objects.get(id=pk)
+        serializer = UserSerializer(user)
 
+        image_path = user.image.path
+        if os.path.exists(image_path):
+            with open(image_path, "rb") as img_file:
+                encoded_image = base64.b64encode(img_file.read()).decode('utf-8')
+                user_data = serializer.data
+                user_data['image'] = f"data:image/jpeg;base64,{encoded_image}"
+                return Response(user_data)
+        else:
+            return Response({'error': 'Image not found'}, status=status.HTTP_404_NOT_FOUND)
+
+
+
+
+
+    except User.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
 
 
 class CustomAuthToken(ObtainAuthToken):
@@ -43,6 +69,8 @@ class CustomAuthToken(ObtainAuthToken):
                                            context={'request': request})
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data['user']
+        user.last_login = datetime.now()
+        user.save()
         token, created = Token.objects.get_or_create(user=user)
         return Response({   
             'token': token.key,
@@ -71,3 +99,22 @@ def signup(request):
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

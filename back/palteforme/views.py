@@ -1,3 +1,4 @@
+from ast import List
 from django.shortcuts import render
 from rest_framework.decorators import api_view
 from django.http import FileResponse
@@ -15,7 +16,6 @@ from django.utils.encoding import smart_str
 import os
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-
 
 
 
@@ -438,7 +438,64 @@ def readingState_detail(request, pk):
         readingState.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+def voicecall(request):
+    return render(request,'voicecalls.html')
+
+
+
+def home(request):
+ return render(request, 'f.html')
 
 
 
 
+
+
+
+
+
+from spyne import Application, rpc, ServiceBase, Unicode, Integer
+from spyne.protocol.soap import Soap11
+from spyne.server.wsgi import WsgiApplication
+from spyne.server.django import DjangoApplication
+
+from .models import Grade, User, Assignment
+from typing import Dict,Any
+
+
+class GradeService(ServiceBase):
+    @rpc(Integer, Integer,_returns=Integer)
+    def get_grade_by_id(self,  student_id,assignment_id):
+        try:
+            grade_instance = Grade.objects.filter(student_id=student_id, assignment_id=assignment_id)
+
+            return  f"Grade: {grade_instance.grade}, Feedback: {grade_instance.feedback}"
+        except Exception as e:
+               raise ValueError(f"Error processing data: {e.args[0]}") 
+    # @rpc(Integer, _returns=List[Integer])
+    # def get_grades_by_student(self,  student_id):
+    #     grades = Grade.objects.filter(student_id=student_id)
+    #     return [
+    #         {
+    #             "id": grade.pk,
+    #             "assignment": {
+    #                 "id": grade.assignment.id,
+    #                 "title": grade.assignment.title,
+    #             },
+    #             "grade": grade.grade,
+    #             "feedback": grade.feedback,
+    #         } for grade in grades
+    #     ]
+
+
+
+spyne_app = Application(
+    [GradeService],
+    tns='http://grade.tn',
+    in_protocol=Soap11(validator='lxml'),
+    out_protocol=Soap11()
+)
+
+Django_app = DjangoApplication(spyne_app)
+
+gradeapi = csrf_exempt(Django_app)

@@ -18,6 +18,9 @@ urlpatterns=[
     path('courses/', course_list),
     path('courses/<int:pk>/', course_detail),
     path('tutor-courses/<int:tutor_id>/', courses_by_tutor),
+    path('home/', home, name='home'),
+    path('voicecall/',voicecall),
+
 
     path('materials/', material_list),
     path('materials/<int:pk>/', material_detail),
