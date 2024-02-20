@@ -1,0 +1,24 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+django = "*"
+django-cors-headers = "*"
+djangorestframework = "*"
+psycopg2 = "*"
+spyne = "*"
+lxml = "*"
+pypdf2 = "*"
+google-api-python-client = "*"
+google-auth = "*"
+google-auth-oauthlib = "*"
+google-auth-httplib2 = "*"
+pydrive = "*"
+pillow = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.11"
