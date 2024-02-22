@@ -23,9 +23,15 @@ urlpatterns=[
     path('change_verification_status/', change_verification_status, name='change_verification_status'),
     path('get_verif_status/', get_verif_status),
 
+    path('lesson/<int:pk>/', lesson),
+    path('add_lesson/', postlesson),
+    path('lessons_by_course/<int:pk>/', lesson_by_course),
+
+    
+
     path('materials/', material_list),
     path('materials/<int:pk>/', material_detail),
-    path('materials/course/<int:course_id>/', materials_by_course),
+    path('materials/course/<int:lesson_id>/', materials_by_course),
 
     path('get_pdf/<str:file_name>/', get_pdf),
 

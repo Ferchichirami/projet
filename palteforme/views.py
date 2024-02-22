@@ -1,4 +1,5 @@
 from ast import List
+import base64
 from django.shortcuts import render
 from rest_framework.decorators import api_view
 from django.http import FileResponse
@@ -50,9 +51,25 @@ def get_verif_status(request):
 @api_view(['GET', 'POST'])
 def course_list(request):
     if request.method == 'GET':
+    
         courses = Course.objects.all()
-        serializer = CourseSerializer(courses, many=True)
-        return Response(serializer.data)
+        serialized_courses = []
+        for course in courses:
+             serializer = CourseSerializer(course)
+             image_path = course.image.path
+             if os.path.exists(image_path):
+                  with open(image_path, "rb") as img_file:
+                         encoded_image = base64.b64encode(img_file.read()).decode('utf-8')
+                         course_data = serializer.data
+                         course_data['image'] = f"data:image/jpeg;base64,{encoded_image}"
+                         serialized_courses.append(course_data)
+             else:
+                    return Response({'error': 'Image not found'}, status=status.HTTP_404_NOT_FOUND) 
+        return Response(serialized_courses)
+
+
+
+    
 
     elif request.method == 'POST':
         serializer = CourseSerializer(data=request.data)
@@ -81,6 +98,48 @@ def course_detail(request, pk):
         return Response(status=status.HTTP_204_NO_CONTENT)
     
 
+
+@api_view(['POST'])
+def postlesson(request):
+     if request.method == 'POST':
+        serializer = LessonSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+def lesson_by_course(request, pk):
+    try:
+
+        lessons = Lesson.objects.filter(course__id=pk)
+        serializer = LessonSerializer(lessons, many=True)
+        return Response(serializer.data)
+    except Course.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+    
+
+
+
+@api_view(['GET', 'PUT', 'DELETE'])
+def lesson(request, pk):
+    lesson = get_object_or_404(Lesson, pk=pk)
+
+    if request.method == 'GET':
+        serializer =LessonSerializer(lesson)
+        return Response(serializer.data)
+
+    elif request.method == 'PUT':
+        serializer = LessonSerializer(lesson, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    elif request.method == 'DELETE':
+        lesson.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 @api_view(['GET'])
 def courses_by_tutor(request, tutor_id):
@@ -129,10 +188,10 @@ def material_detail(request, pk):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 @api_view(['GET', 'POST'])
-def materials_by_course(request, course_id):
+def materials_by_course(request, lesson_id):
     if request.method == 'GET':
         try:
-            materials = Material.objects.filter(course__id=course_id)
+            materials = Material.objects.filter(lesson__id=lesson_id)
             serializer = MaterialSerializer(materials, many=True)
             return Response(serializer.data)
         except Material.DoesNotExist:
@@ -141,7 +200,7 @@ def materials_by_course(request, course_id):
     elif request.method == 'POST':
         serializer = MaterialSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.validated_data['course'] = Course.objects.get(pk=course_id)
+            serializer.validated_data['lesson'] = Lesson.objects.get(pk=lesson_id)
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
