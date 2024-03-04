@@ -51,10 +51,16 @@ class ReadingStateSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
+        fields = ['sender', 'message','timestamp','is_read','type']
 
-
-
-
+class messageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = message
+        fields = ['message', 'username','receiver']
+     
 
 
 

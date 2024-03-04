@@ -47,16 +47,11 @@ def get_all_users(request):
 
     for user in users:
         serializer = UserSerializer(user)
-        image_path = user.image.path
 
-        if os.path.exists(image_path):
-            with open(image_path, "rb") as img_file:
-                encoded_image = base64.b64encode(img_file.read()).decode('utf-8')
-                user_data = serializer.data
-                user_data['image'] = f"data:image/jpeg;base64,{encoded_image}"
-                serialized_users.append(user_data)
-        else:
-            return Response({'error': 'Image not found'}, status=status.HTTP_404_NOT_FOUND)
+      
+        user_data = serializer.data
+        serialized_users.append(user_data)
+       
 
     return Response(serialized_users)
 
@@ -80,28 +75,37 @@ def user_profile(request, pk):
     except User.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
     if request.method == 'GET':
-
         serializer = UserSerializer(user)
-        image_path = user.image.path
-        if os.path.exists(image_path):
-            with open(image_path, "rb") as img_file:
-                encoded_image = base64.b64encode(img_file.read()).decode('utf-8')
-                user_data = serializer.data
-                user_data['image'] = f"data:image/jpeg;base64,{encoded_image}"
+        if user.image:  # Check if the image field is not empty
+             image_path = user.image.path
+             if image_path and os.path.exists(image_path):
+                with open(image_path, "rb") as img_file:
+                       encoded_image = base64.b64encode(img_file.read()).decode('utf-8')
+                       user_data = serializer.data
+                       user_data['image'] = f"data:image/jpeg;base64,{encoded_image}"
                 return Response(user_data)
+             else:
+                 return Response({'error': 'Image not found'}, status=status.HTTP_404_NOT_FOUND)
         else:
-            return Response({'error': 'Image not found'}, status=status.HTTP_404_NOT_FOUND)
+            user_data = serializer.data
+            return Response(user_data)
+        
 
     elif request.method == 'PUT':
         serializer = UserProfileUpdateSerializer(user, data=request.data, partial=True)
         if serializer.is_valid():
-            if 'image' in request.data:
-                old_image_path = user.image.path
-                if os.path.exists(old_image_path):
-                    os.remove(old_image_path)
+            if user.image: 
+                if 'image' in request.data:
+                   old_image_path = user.image.path
+                   if os.path.exists(old_image_path):
+                        os.remove(old_image_path)
+
+                 
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
     elif request.method == 'DELETE':
         image_path = user.image.path
         if os.path.exists(image_path):
@@ -146,9 +150,13 @@ class CustomAuthToken(ObtainAuthToken):
 @api_view(['POST'])
 def signup(request):
     hashed_password = make_password(request.data["password"])
+    mutable_data = request.data.copy()
+    mutable_data['password'] = hashed_password
+
+
     print(hashed_password)
-    request.data["password"] = hashed_password
-    serializer = UserSerializer(data=request.data)
+
+    serializer = UserSerializer(data=mutable_data,partial=True)
     if serializer.is_valid():
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)

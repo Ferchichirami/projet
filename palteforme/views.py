@@ -4,6 +4,8 @@ from django.shortcuts import render
 from rest_framework.decorators import api_view
 from django.http import FileResponse
 from django.shortcuts import render
+
+import palteforme
 from .models import *
 from rest_framework import viewsets,authentication,permissions
 from rest_framework.response import Response
@@ -17,8 +19,96 @@ from django.utils.encoding import smart_str
 import os
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from palteforme.models import verif
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from .pusher import pusher_client
 
 
+verif_instance = verif(needVerification=True)
+verif_instance.save()
+
+class messageApiView(APIView):
+    def post(self, request):
+        pusher_client.trigger('chat', request.data['channel'], {
+            'username': request.data['username'],
+            'message': request.data['message'],
+        })
+        sender = User.objects.get(username=request.data['username'])
+        receiver = User.objects.get(username=request.data['receiver'])
+        message_data = {
+    'message':request.data['message'],
+    'username': sender.id,  
+    'receiver': receiver.id,  
+   
+}
+        serializer = messageSerializer(data=message_data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+@api_view(['POST'])
+def send_notification(request):
+    
+    sender_id = request.POST.get('sender_id')
+    message = request.POST.get('message')
+    notification_type = request.POST.get('type')
+    targeted_user_ids_string = request.POST.get('targeted_users')
+    targeted_user_ids = [int(id) for id in targeted_user_ids_string.split(',')]
+
+    try:
+        sender = User.objects.get(pk=sender_id)
+    except User.DoesNotExist:
+         return Response({'error': 'Sender user not found'}, status=404)
+
+    targeted_users = User.objects.filter(pk__in=targeted_user_ids)
+
+    notification = Notification.objects.create(
+    sender=sender,
+    message=message,
+    type=notification_type
+)
+    notification.targeted_users.add(*targeted_users)
+
+    return Response({'success': 'Notification sent successfully'})
+
+
+@api_view(['GET'])
+def get_notifications_by_user(request, ID):
+    user = User.objects.get(id=ID)
+    gug = []
+    
+    # Get notifications targeted to the specified user
+    notifications = Notification.objects.filter(targeted_users=user)
+    
+    for notification in notifications:
+        is_read = notification.notificationtarget_set.filter(user=user).values_list('is_read', flat=True).first()
+        notification.is_read = is_read
+        gug.append({
+            'id': notification.id,
+            'message': notification.message,
+            'timestamp': notification.timestamp,
+            'type': notification.type,
+            'sender_id': notification.sender_id,
+            'is_read': is_read
+        })
+        
+    return JsonResponse(gug, safe=False)
+
+
+@api_view(['POST'])
+def seen(request,ID):
+    user_id = ID
+   
+    try:
+        user =  User.objects.get(pk=1)
+        NotificationTarget.objects.filter(user_id=user_id).update(is_read=True)
+        return Response({'message': 'All notifications updated for user'}, status=status.HTTP_200_OK)
+    except User.DoesNotExist:
+        return Response({'message': 'User does not exist'}, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['POST'])
@@ -87,8 +177,12 @@ def course_detail(request, pk):
         return Response(serializer.data)
 
     elif request.method == 'PUT':
-        serializer = CourseSerializer(course, data=request.data)
+        serializer = CourseSerializer(course, data=request.data, partial=True)
         if serializer.is_valid():
+            if 'image' in request.data:
+                old_image_path = course.image.path
+                if os.path.exists(old_image_path):
+                    os.remove(old_image_path)
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -177,7 +271,7 @@ def material_detail(request, pk):
         return Response(serializer.data)
 
     elif request.method == 'PUT':
-        serializer = MaterialSerializer(material, data=request.data)
+        serializer = MaterialSerializer(material, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)

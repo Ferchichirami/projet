@@ -36,7 +36,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_staff = models.BooleanField(default=False)
     date_joined = models.DateTimeField(default=datetime.now())
     last_login = models.DateTimeField(blank=True, null=True)
-    image=models.ImageField(upload_to='images/')
+    image=models.ImageField(upload_to='images/',blank=True,null=True)
 
     objects = CustomUserManager()
 

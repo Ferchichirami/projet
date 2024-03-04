@@ -42,16 +42,18 @@ INSTALLED_APPS = [
     'rest_framework',
     'user.apps.UserConfig', 
     'rest_framework.authtoken',
+    'channels',
 
 
 ]
 AUTH_USER_MODEL='user.User'
+ASGI_APPLICATION = 'dds2.asgi.application'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+    # 'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -87,7 +89,7 @@ DATABASES = {
     
        'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'plat',
+        'NAME': 'plateforme',
         'USER': 'postgres',
         'PASSWORD':'1234',
         'HOST':'localhost',   # Set to the PostgreSQL server's address
@@ -149,6 +151,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:4200",
 ]
 
+
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / "media"
 
@@ -159,3 +162,6 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'ayoubchhaidar1@gmail.com'
 EMAIL_HOST_PASSWORD = 'jxrqrxvttdtdebon'
+
+
+CORS_ORIGIN_ALLOW_ALL=True

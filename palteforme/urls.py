@@ -15,6 +15,7 @@ from .views import *
 
 
 urlpatterns=[
+    path('messages/', messageApiView.as_view()),
     path('courses/', course_list),
     path('courses/<int:pk>/', course_detail),
     path('tutor-courses/<int:tutor_id>/', courses_by_tutor),
@@ -27,7 +28,11 @@ urlpatterns=[
     path('add_lesson/', postlesson),
     path('lessons_by_course/<int:pk>/', lesson_by_course),
 
-    
+    path('send_notification/', send_notification),
+    path('get_notifications_by_user/<int:ID>/', get_notifications_by_user),
+    path('seen/<int:ID>/', seen),
+
+
 
     path('materials/', material_list),
     path('materials/<int:pk>/', material_detail),
